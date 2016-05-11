@@ -1,2 +1,2 @@
 # profesores
-Ver leeme.txt
+ola k ase
