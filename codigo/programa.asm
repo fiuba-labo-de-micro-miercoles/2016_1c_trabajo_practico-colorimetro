@@ -35,6 +35,7 @@ main:	ldi 	r16,LOW(RAMEND)
 	sbi	DDRD,PD7
 
 	rcall	uart_init
+	sei
 
 loop:	sbi	PORTD,PD7
 	rcall	delay
@@ -61,7 +62,7 @@ loop:	sbi	PORTD,PD7
 uart_init:
 	outi	UBRR0H, high(BAUD_RATE)
 	outi	UBRR0L, low(BAUD_RATE)
-	outi	UCSR0B, (1<<RXEN0)|(1<<TXEN0)
+	outi	UCSR0B, (1<<RXCIE0)|(1<<RXEN0)|(1<<TXEN0)
 	outi    UCSR0C, (1<<USBS0)|(3<<UCSZ00)
 	ret
 
@@ -106,11 +107,6 @@ tx_number:
 	rcall	tx_byte
 	ret	
 	
-uart_rx_complete_isr:
-	reti
-	
-uart_reg_vacio_isr:
-	reti
 	
 ; tx_bcd_number: Tansmite un numero del 0000 al 9999.
 ; Entrada: r19:r18
@@ -126,6 +122,19 @@ tx_bcd_number:
 	lds	r18,bcd_unidades
 	rcall	tx_number
 	ret
+	
+; Interrupcion De Recepcion:
+	
+uart_rx_complete_isr:
+	push	r16
+	lds	r16, UDR0
+	; Procesar, el dato esta en el r16.
+	rcall	tx_byte	;Hace un eco.
+	pop	r16
+	reti
+	
+uart_reg_vacio_isr:
+	reti
 	
 ;************************************************************************************
 
