@@ -41,9 +41,13 @@ loop:	sbi	PORTD,PD7
 	ldi	r20, low(33)
 	ldi	r21, high(33)
 	rcall	divide
-	cpi	r18,low(30)
+	cpi	r18,low(10)
 	brne	division_fallida
-	cpi	r19,high(30)
+	cpi	r19,high(10)
+	brne	division_fallida
+	cpi	r20,low(30)
+	brne	division_fallida
+	cpi	r21,high(30)
 	brne	division_fallida
 division_exitosa:
 	ldiw	Z,(MENSAJE_DIVISION_EXITOSA*2)
@@ -111,7 +115,8 @@ uart_reg_vacio_isr:
 ; Rutina que divide dos numeros de dos bytes:
 ; Entrada: r19:r18 Numerador.
 ;	   r21:r20 Denominador.
-; Salida:  r19,r18
+; Salida:  r20,r21 Division.
+;	   r19,r18 Resto.
 
 divide:	clr	r16
 	clr	r17
@@ -130,8 +135,8 @@ substract:
 	inc	r17
 	rjmp	divide_loop
 divide_end:
-	mov	r18,r16
-	mov	r19,r17
+	mov	r20,r16
+	mov	r21,r17
 	ret
 
 ;************************************************************************************
