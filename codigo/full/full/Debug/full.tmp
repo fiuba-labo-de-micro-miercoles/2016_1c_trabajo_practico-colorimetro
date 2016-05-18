@@ -1,0 +1,73 @@
+<ASSEMBLER_INFO>
+ <VERSION>2.2.6</VERSION>
+ <DEVICE>"ATmega328P"</DEVICE>
+ <WORKING_DIR>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\Debug</WORKING_DIR>
+ <INCLUDE_PATH>
+  <DIR>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.0.106\avrasm\inc</DIR>
+  <DIR>C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avrassembler\Include</DIR>
+  <DIR></DIR>
+ </INCLUDE_PATH>
+ <SOURCE_FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</SOURCE_FILE>
+ <INCLUDED_FILES>
+  <FILE>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.0.106\avrasm\inc\m328pdef.inc</FILE>
+  <FILE>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.0.106\avrasm\inc\m328Pdef.inc</FILE>
+  <FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\avr_macros.inc</FILE>
+ </INCLUDED_FILES>
+ <OBJECT_FILES>
+  <FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\Debug\full.obj</FILE>
+ </OBJECT_FILES>
+ <HEX_FILES>
+  <FILE>full.hex</FILE>
+ </HEX_FILES>
+ <OUTPUT_FILES>
+  <FILE>full.map</FILE>
+  <FILE>full.lss</FILE>
+ </OUTPUT_FILES>
+ <LABELS>
+  <bcd_unidades_mil><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>12</LINE></bcd_unidades_mil>
+  <bcd_centenas><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>13</LINE></bcd_centenas>
+  <bcd_decenas><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>14</LINE></bcd_decenas>
+  <bcd_unidades><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>15</LINE></bcd_unidades>
+  <contador_low><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>16</LINE></contador_low>
+  <contador_high><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>17</LINE></contador_high>
+  <main><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>101</LINE></main>
+  <uart_rx_complete_isr><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>229</LINE></uart_rx_complete_isr>
+  <uart_reg_vacio_isr><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>237</LINE></uart_reg_vacio_isr>
+  <ISR_INT_EXT_0><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>58</LINE></ISR_INT_EXT_0>
+  <ISR_INT_EXT_1><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>37</LINE></ISR_INT_EXT_1>
+  <fin_isr><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>51</LINE></fin_isr>
+  <delay2><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>321</LINE></delay2>
+  <cambio_a_azul><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>74</LINE></cambio_a_azul>
+  <cambio_a_verde><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>80</LINE></cambio_a_verde>
+  <cambio_a_rojo><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>86</LINE></cambio_a_rojo>
+  <cambio_a_clear><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>92</LINE></cambio_a_clear>
+  <MENSAJE_CAMBIO_A_AZUL><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>336</LINE></MENSAJE_CAMBIO_A_AZUL>
+  <tx_string><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>173</LINE></tx_string>
+  <MENSAJE_CAMBIO_A_VERDE><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>337</LINE></MENSAJE_CAMBIO_A_VERDE>
+  <MENSAJE_CAMBIO_A_ROJO><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>338</LINE></MENSAJE_CAMBIO_A_ROJO>
+  <MENSAJE_CAMBIO_A_BLANCO><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>339</LINE></MENSAJE_CAMBIO_A_BLANCO>
+  <uart_init><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>163</LINE></uart_init>
+  <self><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>130</LINE></self>
+  <delay><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>305</LINE></delay>
+  <tx_bcd_number><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>215</LINE></tx_bcd_number>
+  <MENSAJE_CR_LF><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>335</LINE></MENSAJE_CR_LF>
+  <loop><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>141</LINE></loop>
+  <tx_string_loop><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>175</LINE></tx_string_loop>
+  <fin_tx_string><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>181</LINE></fin_tx_string>
+  <tx_byte><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>188</LINE></tx_byte>
+  <esperar_buffer_de_tx_vacio><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>193</LINE></esperar_buffer_de_tx_vacio>
+  <esperar_buffer_de_tx_vacio_loop><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>195</LINE></esperar_buffer_de_tx_vacio_loop>
+  <tx_number><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>205</LINE></tx_number>
+  <bin_to_bcd><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>282</LINE></bin_to_bcd>
+  <divide><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>248</LINE></divide>
+  <divide_loop><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>252</LINE></divide_loop>
+  <divide_end><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>266</LINE></divide_end>
+  <substract><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>258</LINE></substract>
+  <delay_loop_1><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>307</LINE></delay_loop_1>
+  <delay_loop_2><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>309</LINE></delay_loop_2>
+  <delay_loop_3><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>311</LINE></delay_loop_3>
+  <delay2_loop_2><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>323</LINE></delay2_loop_2>
+  <delay2_loop_3><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>325</LINE></delay2_loop_3>
+  <MENSAJE_FRECUENCIA><FILE>C:\Users\neo\Documents\GitHub\2016_1c_trabajo_practico-colorimetro\codigo\full\full\main.asm</FILE><LINE>334</LINE></MENSAJE_FRECUENCIA>
+ </LABELS>
+</ASSEMBLER_INFO>

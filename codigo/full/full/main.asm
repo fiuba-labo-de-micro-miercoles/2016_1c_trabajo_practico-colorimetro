@@ -13,6 +13,8 @@ bcd_unidades_mil:	.byte	1
 bcd_centenas:		.byte	1
 bcd_decenas:		.byte	1
 bcd_unidades:		.byte	1
+contador_low:		.byte	1
+contador_high:		.byte	1
 
 	.cseg
 	
@@ -24,16 +26,37 @@ bcd_unidades:		.byte	1
 	.org	UDREaddr
 	rjmp	uart_reg_vacio_isr
 	
-	.org 	INT_VECTORS_SIZE
 
 	.org	INT0addr
 	rjmp	ISR_INT_EXT_0	; ocurre flanco de bajada en pulsador
-
+	.org	INT1addr
+	rjmp	ISR_INT_EXT_1	; ocurre flanco de bajada en pulsador
 
 .org INT_VECTORS_SIZE	; (salteo todos los vectores de int)
 
+ISR_INT_EXT_1:
+push r16
+in r16,sreg
+push r16
+lds	r16,contador_low
+inc r16
+sts contador_low,r16
+
+cpi	r16,0
+brne fin_isr
+lds r16,contador_high
+inc r16
+sts contador_high,r16
+
+fin_isr:
+	pop r16
+	out sreg,r16
+	pop r16
+	reti
+
+
 ISR_INT_EXT_0:
-	rcall 	delay
+	rcall 	delay2
 	sbic	pind,2
 	reti
 	
@@ -81,16 +104,17 @@ main:
 	ldi 	r16,HIGH(RAMEND)
 	out 	sph,r16
 	
-	
+	cbi		DDRD,PD3 ; int1 entrada
 	cbi		DDRD,PD2 ; int0 entrada
 	sbi		PORTD,PD2
+	sbi		PORTD,PD3
 
 	input	t0,EICRA		; configuro int. ext. 0 x flanco de bajada
-	ori		t0,0x02
+	ori		t0,0x10
 	output	EICRA,t0		
 		
 	input	t0,EIMSK
-	ori		t0,0x01
+	ori		t0,0x03
 	output	EIMSK,t0
 		
 
@@ -100,20 +124,30 @@ main:
 	sbi		PORTC,PC0
 	cbi		PORTC,PC1	
 	
+	rcall uart_init
 	sei
 
-self:	rjmp 	self
+self:	clr r16
+		sts contador_low,r16
+		sts contador_high,r16
+		rcall delay
+		lds r18,contador_low
+		lds r19,contador_high
+		rcall tx_bcd_number
+		ldiw z,(MENSAJE_CR_LF*2)
+		rcall tx_string
+		rjmp 	self
 
 loop:	sbi	PORTD,PD7
 	rcall	delay
 	cbi	PORTD,PD7
 	rcall 	delay
 	
-	ldiw	Z,(MENSAJE_FRECUENCIA*2)
-	rcall	tx_string
+	;ldiw	Z,(MENSAJE_FRECUENCIA*2)
+	;rcall	tx_string
 	
-	ldi	r18,low(1523)
-	ldi	r19,high(1523)
+	;ldi	r18,low(1523)
+	;ldi	r19,high(1523)
 	rcall	tx_bcd_number
 	
 	ldiw	Z,(MENSAJE_CR_LF*2)
