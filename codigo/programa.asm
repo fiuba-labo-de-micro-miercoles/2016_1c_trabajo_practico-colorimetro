@@ -9,6 +9,11 @@
 
 	.dseg
 
+bcd_unidades_mil:	.byte	1
+bcd_centenas:		.byte	1
+bcd_decenas:		.byte	1
+bcd_unidades:		.byte	1
+
 	.cseg
 	
 	rjmp	main
@@ -36,19 +41,25 @@ loop:	sbi	PORTD,PD7
 	cbi	PORTD,PD7
 	rcall 	delay
 	
-	ldi	r18, low(1000)
-	ldi	r19, high(1000)
-	ldi	r20, low(33)
-	ldi	r21, high(33)
-	rcall	divide
-	cpi	r18,low(10)
+	ldi	r18, low(3512)
+	ldi	r19, high(3512)
+	rcall	bin_to_bcd
+	lds	r16,bcd_unidades_mil
+	cpi	r16,3
 	brne	division_fallida
-	cpi	r19,high(10)
+	
+	lds	r16,bcd_centenas
+	cpi	r16,5
 	brne	division_fallida
-	cpi	r20,low(30)
+	
+	lds	r16,bcd_decenas
+	cpi	r16,1
 	brne	division_fallida
-	cpi	r21,high(30)
+	
+	lds	r16,bcd_unidades
+	cpi	r16,2
 	brne	division_fallida
+	
 division_exitosa:
 	ldiw	Z,(MENSAJE_DIVISION_EXITOSA*2)
 	rcall	tx_string
@@ -118,7 +129,9 @@ uart_reg_vacio_isr:
 ; Salida:  r20,r21 Division.
 ;	   r19,r18 Resto.
 
-divide:	clr	r16
+divide:	push	r16
+	push	r17
+	clr	r16
 	clr	r17
 divide_loop:
 	cp	r19,r21
@@ -137,6 +150,38 @@ substract:
 divide_end:
 	mov	r20,r16
 	mov	r21,r17
+	pop	r17
+	pop	r16
+	ret
+
+;************************************************************************************
+
+; bin_to_bcd: Rutina que convierte un numero binario en BCD.
+; Entrada: r19:r18.
+; Salida: bcd_unidades_mil
+;	  bcd_centenas
+;	  bcd_decenas
+;	  bcd_unidades
+
+bin_to_bcd:
+	
+	ldi	r20,low(1000)
+	ldi	r21,high(1000)
+	rcall	divide
+	sts	bcd_unidades_mil, r20
+	
+	ldi	r20,low(100)
+	ldi	r21,high(100)
+	rcall	divide
+	sts	bcd_centenas, r20
+	
+	ldi	r20,low(10)
+	ldi	r21,high(10)
+	rcall	divide
+	sts	bcd_decenas, r20
+	
+	sts	bcd_unidades, r18
+	
 	ret
 
 ;************************************************************************************
