@@ -31,12 +31,28 @@ main:	ldi 	r16,LOW(RAMEND)
 
 	rcall	uart_init
 
-loop:	ldiw	Z,(MENSAJE*2)	
-	rcall	tx_string
-	sbi	PORTD,PD7
+loop:	sbi	PORTD,PD7
 	rcall	delay
 	cbi	PORTD,PD7
 	rcall 	delay
+	
+	ldi	r18, low(1000)
+	ldi	r19, high(1000)
+	ldi	r20, low(33)
+	ldi	r21, high(33)
+	rcall	divide
+	cpi	r18,low(30)
+	brne	division_fallida
+	cpi	r19,high(30)
+	brne	division_fallida
+division_exitosa:
+	ldiw	Z,(MENSAJE_DIVISION_EXITOSA*2)
+	rcall	tx_string
+	rjmp	loop
+
+division_fallida:
+	ldiw	Z,(MENSAJE_DIVISION_FALLIDA*2)
+	rcall	tx_string
 	rjmp	loop
 	
 ;************************************************************************************
@@ -91,6 +107,34 @@ uart_reg_vacio_isr:
 	reti
 	
 ;************************************************************************************
+
+; Rutina que divide dos numeros de dos bytes:
+; Entrada: r19:r18 Numerador.
+;	   r21:r20 Denominador.
+; Salida:  r19,r18
+
+divide:	clr	r16
+	clr	r17
+divide_loop:
+	cp	r19,r21
+	brlo	divide_end
+	brne	substract
+	cp	r18,r20
+	brlo	divide_end
+substract:
+	sub	r18,r20
+	sbc	r19,r21
+	inc	r16
+	cpi	r16,0
+	brne	divide_loop
+	inc	r17
+	rjmp	divide_loop
+divide_end:
+	mov	r18,r16
+	mov	r19,r17
+	ret
+
+;************************************************************************************
 	
 delay:
 	ldi	r17,255
@@ -109,4 +153,5 @@ delay_loop_3:
 	
 ;************************************************************************************
 	
-MENSAJE:	.db	"hola", 13, 10, 0
+MENSAJE_DIVISION_FALLIDA:	.db	"mal", 13, 10, 0
+MENSAJE_DIVISION_EXITOSA:	.db	"bien", 13, 10, 0
