@@ -41,32 +41,14 @@ loop:	sbi	PORTD,PD7
 	cbi	PORTD,PD7
 	rcall 	delay
 	
-	ldi	r18, low(3512)
-	ldi	r19, high(3512)
-	rcall	bin_to_bcd
-	lds	r16,bcd_unidades_mil
-	cpi	r16,3
-	brne	division_fallida
-	
-	lds	r16,bcd_centenas
-	cpi	r16,5
-	brne	division_fallida
-	
-	lds	r16,bcd_decenas
-	cpi	r16,1
-	brne	division_fallida
-	
-	lds	r16,bcd_unidades
-	cpi	r16,2
-	brne	division_fallida
-	
-division_exitosa:
-	ldiw	Z,(MENSAJE_DIVISION_EXITOSA*2)
+	ldiw	Z,(MENSAJE_FRECUENCIA*2)
 	rcall	tx_string
-	rjmp	loop
-
-division_fallida:
-	ldiw	Z,(MENSAJE_DIVISION_FALLIDA*2)
+	
+	ldi	r18,low(1523)
+	ldi	r19,high(1523)
+	rcall	tx_bcd_number
+	
+	ldiw	Z,(MENSAJE_CR_LF*2)
 	rcall	tx_string
 	rjmp	loop
 	
@@ -115,11 +97,35 @@ esperar_buffer_de_tx_vacio_loop:
 	pop	r16
 	ret
 	
+; tx_number: Tansmite un numero del 0 al 9.
+; Entrada: r18
+
+tx_number:
+	ldi	r16,'0'
+	add	r16,r18
+	rcall	tx_byte
+	ret	
+	
 uart_rx_complete_isr:
 	reti
 	
 uart_reg_vacio_isr:
 	reti
+	
+; tx_bcd_number: Tansmite un numero del 0000 al 9999.
+; Entrada: r19:r18
+
+tx_bcd_number:
+	rcall	bin_to_bcd
+	lds	r18,bcd_unidades_mil
+	rcall	tx_number
+	lds	r18,bcd_centenas
+	rcall	tx_number
+	lds	r18,bcd_decenas
+	rcall	tx_number
+	lds	r18,bcd_unidades
+	rcall	tx_number
+	ret
 	
 ;************************************************************************************
 
@@ -203,5 +209,5 @@ delay_loop_3:
 	
 ;************************************************************************************
 	
-MENSAJE_DIVISION_FALLIDA:	.db	"mal", 13, 10, 0
-MENSAJE_DIVISION_EXITOSA:	.db	"bien", 13, 10, 0
+MENSAJE_FRECUENCIA:	.db	"Frecuencia: ", 0
+MENSAJE_CR_LF:		.db	13, 10, 0
