@@ -35,9 +35,11 @@ contador_high:		.byte	1
 .org INT_VECTORS_SIZE	; (salteo todos los vectores de int)
 
 ISR_INT_EXT_1:
+
 push r16
 in r16,sreg
 push r16
+
 lds	r16,contador_low
 inc r16
 sts contador_low,r16
@@ -110,13 +112,16 @@ main:
 	sbi		PORTD,PD3
 
 	input	t0,EICRA		; configuro int. ext. 0 x flanco de bajada
-	ori		t0,0x10
+	ori		t0,0xA
 	output	EICRA,t0		
 		
 	input	t0,EIMSK
 	ori		t0,0x03
 	output	EIMSK,t0
 		
+	lds 	t1,TCCR1B
+	ori 	t1,3
+	sts     TCCR1B,t1	
 
 	sbi		DDRC,PC0
 	sbi		DDRC,PC1
@@ -130,13 +135,22 @@ main:
 self:	clr r16
 		sts contador_low,r16
 		sts contador_high,r16
-		rcall delay
+		
+		rcall timer_counter
+		;rcall delay
+		
 		lds r18,contador_low
 		lds r19,contador_high
 		rcall tx_bcd_number
 		ldiw z,(MENSAJE_CR_LF*2)
 		rcall tx_string
 		rjmp 	self
+
+timer_counter:
+	rcall delay_timer
+
+	ret
+
 
 loop:	sbi	PORTD,PD7
 	rcall	delay
@@ -337,3 +351,26 @@ MENSAJE_CAMBIO_A_AZUL: .db "Cambio a Azul",13,10,0
 MENSAJE_CAMBIO_A_VERDE: .db "Cambio a Verde",13,10,0
 MENSAJE_CAMBIO_A_ROJO: .db "Cambio a Rojo",13,10,0
 MENSAJE_CAMBIO_A_BLANCO: .db "Cambio a Blanco",13,10,0
+
+
+
+
+;***
+
+;pruebas juan
+delay_timer:
+	push r16
+
+wait:
+	sbis TIFR1, TOV1
+	rjmp wait
+	sbi TIFR1, TOV1
+	ldi r16,0x0B
+	sts TCNT1H,r16
+	ldi r16,0xDC
+	sts TCNT1L,r16
+	pop r16
+	ret 
+
+
+;**
