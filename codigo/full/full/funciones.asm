@@ -14,6 +14,8 @@
 .equ 	GREEN_WHITE = 220
 .equ 	BLUE_WHITE = 240
 
+.equ	MAX_COLOR = 255
+
 
 
 updateLedOutput: 
@@ -64,61 +66,58 @@ greenComponentIsCero:
 
 blueComponentIsCero:
 	ldi	blueComponent,0
-	rjmp out
+	rjmp analog_out_to_leds
 
 redComponentIsTop:
-	ldi	redComponent,255
+	ldi	redComponent,MAX_COLOR
 	rjmp green
 
 greenComponentIsTop:
-	ldi	greenComponent,255
+	ldi	greenComponent,MAX_COLOR
 	rjmp blue
 
 blueComponentIsTop:
-	ldi	blueComponent,255
-	rjmp out
+	ldi	blueComponent,MAX_COLOR
+	rjmp analog_out_to_leds
 
 redComponentIsComputed:
-	ldi r17,255
+	ldi r17,MAX_COLOR
 	sub r16,RED_DARK
 	mul r16,r17
 	mov r19,r1 
 	mov r18,r0
-	ldi r20,RED_WHITE
-	sub r20,RED_DARK
+	ldi r20,(RED_WHITE-RED_DARK)
 	clr r21
-	divide 
+	rcall	divide 
 	lds	redComponent,r21 ; preguntar a mati, si el lsB esta en r21 o r20. porque lo puso al revez...
 	rjmp green
 
 greenComponentIsComputed:
-	ldi r17,255
+	ldi r17,MAX_COLOR
 	sub r16,GREEN_DARK
 	mul r16,r17
 	mov r19,r1 
 	mov r18,r0
-	ldi r20,GREEN_WHITE
-	sub r20,GREEN_DARK
+	ldi r20,(GREEN_WHITE-GREEN_DARK)
 	clr r21
-	divide 
+	rcall	divide 
 	lds	greenComponent,r21 ; preguntar a mati, si el lsB esta en r21 o r20. porque lo puso al revez...
 	rjmp blue
 
 blueComponentIsComputed:
-	ldi r17,255
+	ldi r17,MAX_COLOR
 	sub r16,BLUE_DARK
 	mul r16,r17
 	mov r19,r1 
 	mov r18,r0
-	ldi r20,BLUE_WHITE
-	sub r20,BLUE_DARK
+	ldi r20,(BLUE_WHITE-BLUE_DARK)
 	clr r21
-	divide 
+	rcall	divide 
 	lds	blueComponent,r21 ; preguntar a mati, si el lsB esta en r21 o r20. porque lo puso al revez...
-	rjmp out 
+	rjmp analog_out_to_leds 
 
 
-out: 
+analog_out_to_leds: 
 	; salida de pwm a leds escribirla...
 
 pull r17
