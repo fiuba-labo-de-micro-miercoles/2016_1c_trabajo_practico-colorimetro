@@ -127,3 +127,63 @@ pull r16
 ret
   ;************************************************************************************
 
+
+  ;************************************************************************************
+
+
+; la funcion recibe S2 y S3 del registro de logica de input del sensor con un registro llamado inputSwitchReg
+;
+; inputSwitchReg
+; bit_reg	|	pin_sensor
+----------------------------
+; b0		|	S3
+; b1		|	S2
+; b2-b7		|	X
+;
+; Entrada: S2, S3, se supone que S2 y S3 son registros que ya fueron asignados con .def antes, y solo poseen este trabajo
+;
+; Salida: se modifica S2 y S3 de modo de cambiar lo que se esta midiendo
+;
+;
+;truth table
+;
+; S2| S3| 	MEASURE     | HEXA 
+; --------------------------------
+; 0 | 0 |	RED 		| 0x00
+; 0 | 1 |	BLUE 		| 0x01
+; 1 | 0 |	CLEAR 		| 0x02
+; 1 | 1 |	GREEN 		| 0x03
+;
+.equ INPUT_MEASURE_RED =   0x00 
+.equ INPUT_MEASURE_BLUE =  0x01
+.equ INPUT_MEASURE_CLEAR = 0x02 
+.equ INPUT_MEASURE_GREEN = 0x03 
+
+input_switcher:
+	cp inputSwitchReg,INPUT_MEASURE_RED
+	breq changeToGreen
+	cp inputSwitchReg,INPUT_MEASURE_GREEN
+	breq changeToBlue
+	cp inputSwitchReg,INPUT_MEASURE_BLUE
+	breq changeToClear
+	rjmp changeToRed
+
+changeToRed:
+	lds inputSwitchReg,INPUT_MEASURE_RED
+	ret
+
+changeToGreen:
+	lds inputSwitchReg,INPUT_MEASURE_GREEN
+	ret
+changeToBlue:
+	lds inputSwitchReg,INPUT_MEASURE_BLUE
+	ret
+changeToClear:
+	lds inputSwitchReg,INPUT_MEASURE_CLEAR
+	ret
+
+;************************************************************************************
+
+
+
+
