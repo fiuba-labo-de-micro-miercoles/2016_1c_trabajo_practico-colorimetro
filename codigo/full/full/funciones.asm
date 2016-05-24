@@ -169,21 +169,20 @@ input_switcher:
 	rjmp changeToRed
 
 changeToRed:
-	lds inputSwitchReg,INPUT_MEASURE_RED
+	sts inputSwitchReg,INPUT_MEASURE_RED
 	ret
 
 changeToGreen:
-	lds inputSwitchReg,INPUT_MEASURE_GREEN
+	sts inputSwitchReg,INPUT_MEASURE_GREEN
 	ret
 changeToBlue:
-	lds inputSwitchReg,INPUT_MEASURE_BLUE
+	sts inputSwitchReg,INPUT_MEASURE_BLUE
 	ret
 changeToClear:
-	lds inputSwitchReg,INPUT_MEASURE_CLEAR
+	sts inputSwitchReg,INPUT_MEASURE_CLEAR
 	ret
 
 ;************************************************************************************
-
 
 
 
