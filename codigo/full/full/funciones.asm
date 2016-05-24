@@ -171,7 +171,6 @@ input_switcher:
 changeToRed:
 	sts inputSwitchReg,INPUT_MEASURE_RED
 	ret
-
 changeToGreen:
 	sts inputSwitchReg,INPUT_MEASURE_GREEN
 	ret
@@ -184,5 +183,44 @@ changeToClear:
 
 ;************************************************************************************
 
+;************************************************************************************
 
+; a continuacion un PRIMER BORRADOR de las funcione sde interrupcion, 
+
+intExt1: ; esta interrupcion es la de los flancos
+
+push r16
+in r16,sreg
+push r16
+
+lds	r16,contador_low
+inc r16
+sts contador_low,r16
+
+cpi	r16,0
+brne fin_isr
+lds r16,contador_high
+inc r16
+sts contador_high,r16
+
+fin_isr:
+	pop r16
+	out sreg,r16
+	pop r16
+	reti
+
+
+intExt0: ; esta interrupcion es la del pulsador 
+	
+	rcall 	delay2	;antirebotes
+	sbic	pind,2
+	reti
+
+	; aca iria un in inputSwitchReg,PORTX , pero lo dejo para ver con mati
+	rcall input_switcher
+	; aca iria un out PORTX,inputSwitchReg , pero lo dejo para ver con mati
+
+	
+	reti
+;************************************************************************************
 
