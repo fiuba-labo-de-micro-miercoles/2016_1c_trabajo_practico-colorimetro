@@ -256,8 +256,8 @@ uart_reg_vacio_isr:
 ; Rutina que divide dos numeros de dos bytes:
 ; Entrada: r19:r18 Numerador.
 ;	   r21:r20 Denominador.
-; Salida:  r20,r21 Division.
-;	   r19,r18 Resto.
+; Salida:  r21:r20 Division.
+;	   r19:r18 Resto.
 
 divide:	push	r16
 	push	r17

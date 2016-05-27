@@ -19,208 +19,203 @@
 
 
 updateLedOutput: 
+	push	r0
+	push	r1
+	push	r16
+	push	r17
+	push	r18
+	push	r19
+	push	r20
+	push	r21
 
-	;PUSHS NECESARIOS
-	push r16
-	lds r16,sreg ; aca guardo sreg porque no se bien todavia que va a hacer el codigo, si no toco esto lo saco luego
-	push r16
-	push r17
-	;
-
-red:
-
-	lds r16,redFrequency
-	cp 	r16,RED_DARK
+red:	lds 	r16,redFrequency
+	cpi 	r16,RED_DARK
 	brlo	redComponentIsCero
-	cp 	r16,RED_WHITE
+	cpi 	r16,RED_WHITE
 	brsh	redComponentIsTop
 	rjmp	redComponentIsComputed
 
-green:
-
-	lds r16,greenFrequency
-	cp 	r16,GREEN_DARK
+green:	lds	r16,greenFrequency
+	cpi 	r16,GREEN_DARK
 	brlo	greenComponentIsCero
-	cp 	r16,GREEN_WHITE
+	cpi 	r16,GREEN_WHITE
 	brsh	greenComponentIsTop
 	rjmp	greenComponentIsComputed
 
 
-blue:
-
-	lds r16,blueFrequency
-	cp 	r16,BLUE_DARK
+blue:	lds	r16,blueFrequency
+	cpi 	r16,BLUE_DARK
 	brlo	blueComponentIsCero
-	cp 	r16,BLUE_WHITE
+	cpi 	r16,BLUE_WHITE
 	brsh	blueComponentIsTop
 	rjmp	blueComponentIsComputed
 
 
 redComponentIsCero:
 	ldi	redComponent,0
-	rjmp green
+	rjmp	green
 
 greenComponentIsCero:
 	ldi	greenComponent,0
-	rjmp blue
+	rjmp	blue
 
 blueComponentIsCero:
 	ldi	blueComponent,0
-	rjmp analog_out_to_leds
+	rjmp	analog_out_to_leds
 
 redComponentIsTop:
 	ldi	redComponent,MAX_COLOR
-	rjmp green
+	rjmp	green
 
 greenComponentIsTop:
 	ldi	greenComponent,MAX_COLOR
-	rjmp blue
+	rjmp	blue
 
 blueComponentIsTop:
 	ldi	blueComponent,MAX_COLOR
-	rjmp analog_out_to_leds
+	rjmp	analog_out_to_leds
 
 redComponentIsComputed:
-	ldi r17,MAX_COLOR
-	sub r16,RED_DARK
-	mul r16,r17
-	mov r19,r1 
-	mov r18,r0
-	ldi r20,(RED_WHITE-RED_DARK)
-	clr r21
+	sub	r16,RED_DARK
+	ldi	r17,MAX_COLOR
+	mul	r16,r17
+	mov	r19,r1 
+	mov	r18,r0
+	ldi	r20,(RED_WHITE-RED_DARK)
+	clr	r21
 	rcall	divide 
-	lds	redComponent,r21 ; preguntar a mati, si el lsB esta en r21 o r20. porque lo puso al revez...
-	rjmp green
+	lds	redComponent,r20
+	rjmp	green
 
 greenComponentIsComputed:
-	ldi r17,MAX_COLOR
-	sub r16,GREEN_DARK
-	mul r16,r17
-	mov r19,r1 
-	mov r18,r0
-	ldi r20,(GREEN_WHITE-GREEN_DARK)
-	clr r21
+	ldi	r17,MAX_COLOR
+	sub	r16,GREEN_DARK
+	mul	r16,r17
+	mov	r19,r1 
+	mov	r18,r0
+	ldi	r20,(GREEN_WHITE-GREEN_DARK)
+	clr	r21
 	rcall	divide 
-	lds	greenComponent,r21 ; preguntar a mati, si el lsB esta en r21 o r20. porque lo puso al revez...
-	rjmp blue
+	lds	greenComponent,r20
+	rjmp	blue
 
 blueComponentIsComputed:
-	ldi r17,MAX_COLOR
-	sub r16,BLUE_DARK
-	mul r16,r17
-	mov r19,r1 
-	mov r18,r0
-	ldi r20,(BLUE_WHITE-BLUE_DARK)
-	clr r21
+	ldi	r17,MAX_COLOR
+	sub	r16,BLUE_DARK
+	mul	r16,r17
+	mov	r19,r1 
+	mov	r18,r0
+	ldi	r20,(BLUE_WHITE-BLUE_DARK)
+	clr	r21
 	rcall	divide 
-	lds	blueComponent,r21 ; preguntar a mati, si el lsB esta en r21 o r20. porque lo puso al revez...
-	rjmp analog_out_to_leds 
-
+	lds	blueComponent,r20
+	rjmp	analog_out_to_leds 
 
 analog_out_to_leds: 
-	; salida de pwm a leds escribirla...
+	;Se escriben los pwm de los leds.
+		
+end_update_led_output
+	pop	r21
+	pop	r20
+	pop	r19
+	pop	r18
+	pop	r17
+	pop	r16
+	pop	r1
+	pop	r0
+	ret
+	
+;************************************************************************************
 
-pull r17
-pull sreg
-pull r16
 
-ret
-  ;************************************************************************************
+;************************************************************************************
 
 
-  ;************************************************************************************
-
-
-; la funcion recibe S2 y S3 del registro de logica de input del sensor con un registro llamado inputSwitchReg
+; La funcion recibe en el r16 la lectura de S3:S2, y devuelve en el r16 sus nuevos valores.
 ;
-; inputSwitchReg
-; bit_reg	|	pin_sensor
-----------------------------
-; b0		|	S3
-; b1		|	S2
-; b2-b7		|	X
-;
-; Entrada: S2, S3, se supone que S2 y S3 son registros que ya fueron asignados con .def antes, y solo poseen este trabajo
-;
-; Salida: se modifica S2 y S3 de modo de cambiar lo que se esta midiendo
-;
-;
-;truth table
-;
-; S2| S3| 	MEASURE     | HEXA 
-; --------------------------------
+; S2| S3| 	MEASURE     	| HEXA 
+; --+---+-----------------------+-----
 ; 0 | 0 |	RED 		| 0x00
 ; 0 | 1 |	BLUE 		| 0x01
 ; 1 | 0 |	CLEAR 		| 0x02
 ; 1 | 1 |	GREEN 		| 0x03
 ;
-.equ INPUT_MEASURE_RED =   0x00 
-.equ INPUT_MEASURE_BLUE =  0x01
-.equ INPUT_MEASURE_CLEAR = 0x02 
-.equ INPUT_MEASURE_GREEN = 0x03 
+
+.equ	INPUT_MEASURE_RED	= 0x00 
+.equ	INPUT_MEASURE_BLUE	= 0x01
+.equ	INPUT_MEASURE_CLEAR	= 0x02 
+.equ	INPUT_MEASURE_GREEN	= 0x03 
+.equ	INPUT_MEASURE_MASK	= 0x03
 
 input_switcher:
-	cp inputSwitchReg,INPUT_MEASURE_RED
-	breq changeToGreen
-	cp inputSwitchReg,INPUT_MEASURE_GREEN
-	breq changeToBlue
-	cp inputSwitchReg,INPUT_MEASURE_BLUE
-	breq changeToClear
-	rjmp changeToRed
-
+	andi	r16,INPUT_MEASURE_MASK
+	cpi	r16,INPUT_MEASURE_RED
+	breq	changeToGreen
+	cpi	r16,INPUT_MEASURE_GREEN
+	breq	changeToBlue
+	cpi	r16,INPUT_MEASURE_BLUE
+	breq	changeToClear
+	rjmp	changeToRed
 changeToRed:
-	sts inputSwitchReg,INPUT_MEASURE_RED
+	ldi	r16,INPUT_MEASURE_RED
 	ret
 changeToGreen:
-	sts inputSwitchReg,INPUT_MEASURE_GREEN
+	ldi	r16,INPUT_MEASURE_GREEN
 	ret
 changeToBlue:
-	sts inputSwitchReg,INPUT_MEASURE_BLUE
+	ldi	r16,INPUT_MEASURE_BLUE
 	ret
 changeToClear:
-	sts inputSwitchReg,INPUT_MEASURE_CLEAR
+	ldi	r16,INPUT_MEASURE_CLEAR
 	ret
 
 ;************************************************************************************
 
-;************************************************************************************
-
-; a continuacion un PRIMER BORRADOR de las funcione sde interrupcion, 
-
-intExt1: ; esta interrupcion es la de los flancos
-
-push r16
-in r16,sreg
-push r16
-
-lds	r16,contador_low
-inc r16
-sts contador_low,r16
-
-cpi	r16,0
-brne fin_isr
-lds r16,contador_high
-inc r16
-sts contador_high,r16
-
-fin_isr:
-	pop r16
-	out sreg,r16
-	pop r16
-	reti
-
-
-intExt0: ; esta interrupcion es la del pulsador 
+int_ext_0:
+	push	r16
+	in	r16,sreg
+	push	r16
+	push	r18
+	push	r19
 	
-	rcall 	delay2	;antirebotes
+	rcall 	delay2	;Antirrebotes
 	sbic	pind,2
+	rjmp	ex_int_ext_0_isr
+	in	r16,PORTX		;INDICAR BIEN EL PUERTO
+	;HACER LAS ROTACIONES Y ENMASCARAMIENTOS EN r16 PARA QUE QUEDE 0-0-0-0-0-0-S3-S2
+	rcall	input_switcher
+	;HACER ROTACIONES Y ENMASCARAMIENTOS PARA Q EL VALOR DE r16 ENCAJE EN EL PUERTO.
+	out	PORTX,r16		;IDICAR EL PUERTO
+
+end_int_ext_0_isr:
+	pop	r19
+	pop	r18
+	pop	r16
+	out	sreg,r16
+	pop	r16
 	reti
-
-	; aca iria un in inputSwitchReg,PORTX , pero lo dejo para ver con mati
-	rcall input_switcher
-	; aca iria un out PORTX,inputSwitchReg , pero lo dejo para ver con mati
-
 	
+;****************************************
+	
+int_ext_1:
+	push	r16
+	in	r16,sreg
+	push	r16
+
+	lds	r16,contador_low
+	inc	r16
+	sts	contador_low,r16
+	cpi	r16,0
+	brne	end_int_ext_1_isr
+	lds	r16,contador_high
+	inc	r16
+	sts	contador_high,r16
+	
+end_int_ext_1_isr:
+	pop	r16
+	out	sreg,r16
+	pop	r16
 	reti
+	
 ;************************************************************************************
 
