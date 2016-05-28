@@ -1,8 +1,12 @@
-; Compilar:  avra programa.asm
-; Programar: sudo avrdude -c usbtiny -p m328p -U flash:w:programa.hex:i
+;************************************************************************************
+; Compilar:  avra main.asm
+; Programar: sudo avrdude -c usbtiny -p m328p -U flash:w:main.hex:i
+;************************************************************************************
 
 .include "m328Pdef.inc"
 .include "avr_macros.inc"
+
+;************************************************************************************
 
 .def	t0 = r16
 .def	t1 = r17
@@ -15,90 +19,36 @@ bcd_decenas:		.byte	1
 bcd_unidades:		.byte	1
 contador_low:		.byte	1
 contador_high:		.byte	1
+red_freq_low:		.byte	1
+red_freq_high:		.byte	1
+green_freq_low:		.byte	1
+green_freq_high:	.byte	1
+blue_freq_low:		.byte	1
+blue_freq_high:		.byte	1
+red_duty:		.byte	1
+green_duty:		.byte	1
+blue_duty:		.byte	1
+
+;************************************************************************************
 
 	.cseg
-	
 	rjmp	main
+	
+	.org	INT0addr
+	rjmp	int_ext_0_isr
+	
+	.org	INT1addr
+	rjmp	int_ext_1_isr
 
 	.org	URXCaddr
 	rjmp	uart_rx_complete_isr
 	
 	.org	UDREaddr
 	rjmp	uart_reg_vacio_isr
+
+	.org INT_VECTORS_SIZE
 	
-
-	.org	INT0addr
-	rjmp	ISR_INT_EXT_0	; ocurre flanco de bajada en pulsador
-	.org	INT1addr
-	rjmp	ISR_INT_EXT_1	; ocurre flanco de bajada en pulsador
-
-.org INT_VECTORS_SIZE	; (salteo todos los vectores de int)
-
-ISR_INT_EXT_1:
-
-push r16
-in r16,sreg
-push r16
-
-lds	r16,contador_low
-inc r16
-sts contador_low,r16
-
-cpi	r16,0
-brne fin_isr
-lds r16,contador_high
-inc r16
-sts contador_high,r16
-
-fin_isr:
-	pop r16
-	out sreg,r16
-	pop r16
-	reti
-
-
-ISR_INT_EXT_0:
-	rcall 	delay2
-	sbic	pind,2
-	reti
-	
-	in		r18,pinc
-	andi	r18,0x3
-	cpi		r18,0x1
-	breq	cambio_a_azul ;estaba en clear
-	cpi		r18,0x2
-	breq	cambio_a_verde; estaba en azul
-	cpi		r18,0x3 ; estaba en verde
-	breq	cambio_a_rojo
-	cpi		r18,0	;estaba en rojo
-	breq	cambio_a_clear
-
-cambio_a_azul:
-	ldiw	Z,(MENSAJE_CAMBIO_A_AZUL*2)
-	rcall	tx_string
-	cbi		portc,0
-	sbi		portc,1
-	reti	
-cambio_a_verde:
-	ldiw	Z,(MENSAJE_CAMBIO_A_VERDE*2)
-	rcall	tx_string
-	sbi		portc,0
-	sbi		portc,1
-	reti	
-cambio_a_rojo:
-	ldiw	Z,(MENSAJE_CAMBIO_A_ROJO*2)
-	rcall	tx_string
-	cbi		portc,0
-	cbi		portc,1
-	reti	
-cambio_a_clear:
-	ldiw	Z,(MENSAJE_CAMBIO_A_BLANCO*2)
-	rcall	tx_string
-	sbi		portc,0
-	cbi		portc,1
-	reti	
-		
-
+;************************************************************************************
 
 main:		
 	ldi 	r16,LOW(RAMEND)
@@ -106,67 +56,283 @@ main:
 	ldi 	r16,HIGH(RAMEND)
 	out 	sph,r16
 	
-	cbi		DDRD,PD3 ; int1 entrada
-	cbi		DDRD,PD2 ; int0 entrada
-	sbi		PORTD,PD2
-	sbi		PORTD,PD3
-
-	input	t0,EICRA		; configuro int. ext. 0 x flanco de bajada
-	ori		t0,0xA
-	output	EICRA,t0		
-		
-	input	t0,EIMSK
-	ori		t0,0x03
-	output	EIMSK,t0
-		
-	lds 	t1,TCCR1B
-	ori 	t1,3
-	sts     TCCR1B,t1	
-
-	sbi		DDRC,PC0
-	sbi		DDRC,PC1
-
-	sbi		PORTC,PC0
-	cbi		PORTC,PC1	
+	call	ext_int_init	
+	call	uart_init
+	call	color_switcher_init
 	
-	rcall uart_init
-	sei
+	call	enable_interrupts
 
-self:	clr r16
-		sts contador_low,r16
-		sts contador_high,r16
-		
-		rcall timer_counter
-		;rcall delay
-		
-		lds r18,contador_low
-		lds r19,contador_high
-		rcall tx_bcd_number
-		ldiw z,(MENSAJE_CR_LF*2)
-		rcall tx_string
-		rjmp 	self
-
-timer_counter:
-	rcall delay_timer
-
-	ret
-
-
-loop:	sbi	PORTD,PD7
-	rcall	delay
-	cbi	PORTD,PD7
+loop:	clr	r16
+	sts	contador_low,r16
+	sts	contador_high,r16	
 	rcall 	delay
 	
-	;ldiw	Z,(MENSAJE_FRECUENCIA*2)
-	;rcall	tx_string
+	call	compute_color
+	call	print_values
+	call	switch_color
 	
-	;ldi	r18,low(1523)
-	;ldi	r19,high(1523)
-	rcall	tx_bcd_number
+	rjmp	loop
+	
+enable_interrupts:
+	sei
+	ret
+	
+disiable_interrupts:
+	cli
+	ret
+	
+;************************************************************************************
+
+; S3 | S2 | MEASURE | HEXA
+;----+----+---------+------
+; 0  | 0  | RED	    | 0x00
+; 0  | 1  | CLEAR   | 0x01
+; 1  | 0  | BLUE    | 0x02
+; 1  | 1  | GREEN   | 0x03
+
+.equ	INPUT_MEASURE_RED	= 0x00
+.equ	INPUT_MEASURE_CLEAR	= 0x01  
+.equ	INPUT_MEASURE_BLUE	= 0x02
+.equ	INPUT_MEASURE_GREEN	= 0x03
+.equ	INPUT_MEASURE_MASK	= 0x03
+
+.equ	S2_PIN = PC0
+.equ	S3_PIN = PC1
+.equ	S_PORT = PORTC
+.equ	S_DDR  = DDRC
+
+;*************************************************
+
+color_switcher_init:
+	sbi	S_DDR,S2_PIN
+	sbi	S_DDR,S3_PIN
+	cbi	S_PORT,S2_PIN
+	cbi	S_PORT,S3_PIN
+	ret
+	
+;*************************************************
+
+switch_color:
+	in	r16,S_PORT
+	andi	r16,INPUT_MEASURE_MASK
+	cpi	r16,INPUT_MEASURE_RED
+	breq	changeToGreen
+	cpi	r16,INPUT_MEASURE_GREEN
+	breq	changeToBlue
+	cpi	r16,INPUT_MEASURE_BLUE
+	breq	changeToClear
+changeToRed:
+	ldi	r16,INPUT_MEASURE_RED
+	rjmp	end_switch_color
+changeToGreen:
+	ldi	r16,INPUT_MEASURE_GREEN
+	rjmp	end_switch_color
+changeToBlue:
+	ldi	r16,INPUT_MEASURE_BLUE
+	rjmp	end_switch_color
+changeToClear:
+	ldi	r16,INPUT_MEASURE_CLEAR
+end_switch_color:
+	in	r17,S_PORT
+	andi	r17,~INPUT_MEASURE_MASK
+	or	r16,r17
+	out	S_PORT,r16
+	
+	ret
+	
+;*************************************************
+	
+compute_color:		
+	in	r16,S_PORT
+	andi	r16,INPUT_MEASURE_MASK
+	cpi	r16,INPUT_MEASURE_RED
+	breq	compute_red
+	cpi	r16,INPUT_MEASURE_GREEN
+	breq	compute_green
+	cpi	r16,INPUT_MEASURE_BLUE
+	breq	compute_blue
+	rjmp	end_compute_color
+compute_red:
+	lds	r18,contador_low
+	lds	r19,contador_high
+	sts	red_freq_low,r18
+	sts	red_freq_high,r19
+	call	compute_red_duty
+	rjmp	end_compute_color
+	
+compute_green:
+	lds	r18,contador_low
+	lds	r19,contador_high
+	sts	green_freq_low,r18
+	sts	green_freq_high,r19
+	call	compute_green_duty
+	rjmp	end_compute_color
+	
+compute_blue:
+	lds	r18,contador_low
+	lds	r19,contador_high
+	sts	blue_freq_low,r18
+	sts	blue_freq_high,r19
+	call	compute_blue_duty
+	rjmp	end_compute_color
+	
+end_compute_color:
+	ret
+	
+;*************************************************
+
+.equ	RED_DARK = 45
+.equ 	GREEN_DARK = 44
+.equ 	BLUE_DARK = 55
+
+.equ 	RED_WHITE = 230
+.equ 	GREEN_WHITE = 180
+.equ 	BLUE_WHITE = 210
+
+.equ	MAX_COLOR = 255
+	
+compute_red_duty:
+	lds	r16,red_freq_high
+	cpi	r16,0
+	brne	max_red_duty
+	lds 	r16,red_freq_low
+	cpi 	r16,RED_DARK
+	brlo	min_red_duty
+	cpi 	r16,RED_WHITE
+	brsh	max_red_duty
+red_duty_proporcional:
+	subi	r16,RED_DARK
+	ldi	r17,MAX_COLOR
+	mul	r16,r17
+	mov	r19,r1 
+	mov	r18,r0
+	ldi	r20,(RED_WHITE-RED_DARK)
+	clr	r21
+	call	divide 
+	sts	red_duty,r20
+	ret
+max_red_duty:
+	ldi	r16,MAX_COLOR
+	sts	red_duty,r16
+	ret
+min_red_duty:
+	clr	r16
+	sts	red_duty,r16
+	ret
+	
+compute_green_duty:
+	lds	r16,green_freq_high
+	cpi	r16,0
+	brne	max_green_duty
+	lds 	r16,green_freq_low
+	cpi 	r16,GREEN_DARK
+	brlo	min_green_duty
+	cpi 	r16,GREEN_WHITE
+	brsh	max_green_duty
+green_duty_proporcional:
+	subi	r16,GREEN_DARK
+	ldi	r17,MAX_COLOR
+	mul	r16,r17
+	mov	r19,r1 
+	mov	r18,r0
+	ldi	r20,(GREEN_WHITE-GREEN_DARK)
+	clr	r21
+	call	divide 
+	sts	green_duty,r20
+	ret
+max_green_duty:
+	ldi	r16,MAX_COLOR
+	sts	green_duty,r16
+	ret
+min_green_duty:
+	clr	r16
+	sts	green_duty,r16
+	ret
+
+compute_blue_duty:
+	lds	r16,blue_freq_high
+	cpi	r16,0
+	brne	max_blue_duty
+	lds 	r16,blue_freq_low
+	cpi 	r16,BLUE_DARK
+	brlo	min_blue_duty
+	cpi 	r16,BLUE_WHITE
+	brsh	max_blue_duty
+blue_duty_proporcional:
+	subi	r16,BLUE_DARK
+	ldi	r17,MAX_COLOR
+	mul	r16,r17
+	mov	r19,r1 
+	mov	r18,r0
+	ldi	r20,(BLUE_WHITE-BLUE_DARK)
+	clr	r21
+	call	divide 
+	sts	blue_duty,r20
+	ret
+max_blue_duty:
+	ldi	r16,MAX_COLOR
+	sts	blue_duty,r16
+	ret
+min_blue_duty:
+	clr	r16
+	sts	blue_duty,r16
+	ret
+	
+;*************************************************
+	
+print_values:
+	in	r16,S_PORT
+	andi	r16,INPUT_MEASURE_MASK
+	cpi	r16,INPUT_MEASURE_CLEAR		;Solo imprime cuando esta midiendo clear, o sea ya midio los otros 3.
+	breq	print_freq
+	ret
+	
+print_freq:
+	ldiw	Z,(MENSAJE_FREQ*2)
+	call	tx_string
+	
+	ldiw	Z,(MENSAJE_R*2)
+	rcall	tx_string
+	lds	r18,red_freq_low
+	lds	r19,red_freq_high
+	call	tx_bcd_number
+	
+	ldiw	Z,(MENSAJE_G*2)
+	rcall	tx_string
+	lds	r18,green_freq_low
+	lds	r19,green_freq_high
+	call	tx_bcd_number
+	
+	ldiw	Z,(MENSAJE_B*2)
+	rcall	tx_string
+	lds	r18,blue_freq_low
+	lds	r19,blue_freq_high
+	call	tx_bcd_number
+	
+	ldiw	Z,(MENSAJE_DUTY*2)
+	call	tx_string
+	
+	ldiw	Z,(MENSAJE_R*2)
+	rcall	tx_string
+	lds	r18,red_duty
+	clr	r19
+	call	tx_bcd_number
+	
+	ldiw	Z,(MENSAJE_G*2)
+	rcall	tx_string
+	lds	r18,green_duty
+	clr	r19
+	call	tx_bcd_number
+	
+	ldiw	Z,(MENSAJE_B*2)
+	rcall	tx_string
+	lds	r18,blue_duty
+	clr	r19
+	call	tx_bcd_number
 	
 	ldiw	Z,(MENSAJE_CR_LF*2)
-	rcall	tx_string
-	rjmp	loop
+	call	tx_string
+	ret
 	
 ;************************************************************************************
 
@@ -242,9 +408,13 @@ tx_bcd_number:
 	
 uart_rx_complete_isr:
 	push	r16
+	lds	r16,sreg
+	push	r16
 	lds	r16, UDR0
 	; Procesar, el dato esta en el r16.
 	rcall	tx_byte	;Hace un eco.
+	pop	r16
+	sts	sreg,r16
 	pop	r16
 	reti
 	
@@ -317,7 +487,7 @@ bin_to_bcd:
 ;************************************************************************************
 	
 delay:
-	ldi	r17,255
+	ldi	r17,6
 delay_loop_1:
 	ldi	r18,255
 delay_loop_2:
@@ -330,47 +500,52 @@ delay_loop_3:
 	dec	r17
 	brne	delay_loop_1
 	ret
-	
-
-delay2:
-	
-delay2_loop_2:
-	ldi		r19,50
-delay2_loop_3:
-	dec		r19
-	brne	delay2_loop_3
-	dec		r18
-	brne	delay2_loop_2
-	ret
 
 ;************************************************************************************
 	
-MENSAJE_FRECUENCIA:	.db	"Frecuencia: ", 0
+MENSAJE_FREQ:		.db	"FREQ ", 0	
+MENSAJE_R:		.db	"R: ", 0
+MENSAJE_G:		.db	" G: ", 0
+MENSAJE_B:		.db	" B: ", 0
+MENSAJE_DUTY:		.db	" | DUTY ", 0
 MENSAJE_CR_LF:		.db	13, 10, 0
-MENSAJE_CAMBIO_A_AZUL: .db "Cambio a Azul",13,10,0
-MENSAJE_CAMBIO_A_VERDE: .db "Cambio a Verde",13,10,0
-MENSAJE_CAMBIO_A_ROJO: .db "Cambio a Rojo",13,10,0
-MENSAJE_CAMBIO_A_BLANCO: .db "Cambio a Blanco",13,10,0
 
+;*************************************************************************************
 
+ext_int_init:
+	cbi	DDRD,PD2	;INT0
+	cbi	DDRD,PD3	;INT1
+	sbi	PORTD,PD2	;Pull Up Activada
+	sbi	PORTD,PD3	;Pull Up Activada
 
+	;Ambas con flanco descendente.
+	
+	ldi	r16,(1<<ISC11)|(0<<ISC10)|(1<<ISC01)|(0<<ISC00)
+	output	EICRA,r16		
+	ldi	r16,(1<<INT1)|(1<<INT0)
+	output	EIMSK,r16
+	ret
 
-;***
-
-;pruebas juan
-delay_timer:
-	push r16
-
-wait:
-	sbis TIFR1, TOV1
-	rjmp wait
-	sbi TIFR1, TOV1
-	ldi r16,0x0B
-	sts TCNT1H,r16
-	ldi r16,0xDC
-	sts TCNT1L,r16
+int_ext_0_isr:
+	reti	
+		
+int_ext_1_isr:
+	push	r16
+	in	r16,sreg
+	push	r16
+	lds	r16,contador_low
+	inc	r16
+	sts	contador_low,r16
+	cpi	r16,0
+	brne	end_int_ext_1_isr
+	lds	r16,contador_high
+	inc	r16
+	sts	contador_high,r16
+end_int_ext_1_isr:
 	pop r16
-	ret 
+	out sreg,r16
+	pop r16
+	reti
+	
+;*************************************************************************************
 
-
-;**
