@@ -29,6 +29,10 @@ red_duty:		.byte	1
 green_duty:		.byte	1
 blue_duty:		.byte	1
 
+;contador_pwm_red:	.byte	1
+;contador_pwm_green:	.byte	1
+;contador_pwm_blue:	.byte	1
+
 ;************************************************************************************
 
 	.cseg
@@ -39,6 +43,12 @@ blue_duty:		.byte	1
 	
 	.org	INT1addr
 	rjmp	int_ext_1_isr
+	
+	.org	OVF0addr
+	rjmp	timer_0_overflow_isr
+	
+	.org	OVF1addr
+	rjmp	timer_1_overflow_isr
 
 	.org	URXCaddr
 	rjmp	uart_rx_complete_isr
@@ -59,12 +69,13 @@ main:
 	call	ext_int_init	
 	call	uart_init
 	call	color_switcher_init
+	call	led_init
 	
 	call	enable_interrupts
 
 loop:	clr	r16
-	sts	contador_low,r16
-	sts	contador_high,r16	
+	sts	contador_high,r16
+	sts	contador_low,r16	
 	rcall 	delay
 	
 	call	compute_color
@@ -80,6 +91,92 @@ enable_interrupts:
 disiable_interrupts:
 	cli
 	ret
+	
+;************************************************************************************
+
+.equ	RED_LED_PIN = PD6
+.equ	GREEN_LED_PIN = PD5
+.equ	BLUE_LED_PIN = PB3
+.equ	RED_LED_PORT = PORTD
+.equ	GREEN_LED_PORT = PORTD
+.equ	BLUE_LED_PORT = PORTB
+.equ	RED_LED_DDR = DDRD
+.equ	GREEN_LED_DDR = DDRD
+.equ	BLUE_LED_DDR = DDRB
+
+.equ	TIMER_PERIOD = 150
+
+led_init:
+	cbi	RED_LED_PORT,RED_LED_PIN
+	cbi	GREEN_LED_PORT,GREEN_LED_PIN
+	cbi	BLUE_LED_PORT,BLUE_LED_PIN
+	sbi	RED_LED_DDR,RED_LED_PIN
+	sbi	GREEN_LED_DDR,GREEN_LED_PIN
+	sbi	BLUE_LED_DDR,BLUE_LED_PIN
+	
+	;TIMER0
+	ldi	r16,(1<<COM0B1)|(1<<COM0B0)|(1<<COM0A1)|(1<<COM0A0)|(1<<WGM02)|(1<<WGM00)
+	out	TCCR0A,r16
+	
+	in	r16,TCCR0B
+	andi	r16,~((1<<CS02)|(1<<CS01)|(1<<CS00))
+	ori	r16,(1<<CS01)
+	out	TCCR0B,r16
+	
+	clr	r16
+	out	OCR0A,r16
+	out	OCR0B,r16
+	
+	lds	r16,TIMSK0
+	ori	r16,(1<<TOIE0)
+	sts	TIMSK0,r16
+	
+	;TIMER2
+	ldi	r16,(1<<COM2A1)|(1<<COM2A0)|(1<<WGM22)|(1<<WGM20)
+	sts	TCCR2A,r16
+	
+	lds	r16,TCCR2B
+	andi	r16,~((1<<CS22)|(1<<CS21)|(1<<CS20))
+	ori	r16,(1<<CS21)
+	sts	TCCR2B,r16
+	
+	clr	r16
+	sts	OCR2A,r16
+	
+	lds	r16,TIMSK2
+	ori	r16,(1<<TOIE2)
+	sts	TIMSK2,r16
+	
+	ret
+	
+timer_0_overflow_isr:
+	push	r16
+	lds	r16,sreg
+	push	r16
+	
+	lds	r16,red_duty
+	out	OCR0A,r16
+	lds	r16,green_duty
+	out	OCR0B,r16	
+	
+	pop	r16
+	sts	sreg,r16
+	pop	r16
+	reti
+	
+	
+timer_1_overflow_isr:
+	push	r16
+	lds	r16,sreg
+	push	r16
+	
+	lds	r16,blue_duty
+	sts	OCR2A,r16	
+	
+	pop	r16
+	sts	sreg,r16
+	pop	r16
+	reti
 	
 ;************************************************************************************
 
@@ -181,13 +278,13 @@ end_compute_color:
 	
 ;*************************************************
 
-.equ	RED_DARK = 45
-.equ 	GREEN_DARK = 44
-.equ 	BLUE_DARK = 55
+.equ	RED_DARK = 5
+.equ 	GREEN_DARK = 4
+.equ 	BLUE_DARK = 3
 
-.equ 	RED_WHITE = 230
-.equ 	GREEN_WHITE = 180
-.equ 	BLUE_WHITE = 210
+.equ 	RED_WHITE = 115
+.equ 	GREEN_WHITE = 95
+.equ 	BLUE_WHITE = 105
 
 .equ	MAX_COLOR = 255
 	
@@ -487,7 +584,7 @@ bin_to_bcd:
 ;************************************************************************************
 	
 delay:
-	ldi	r17,6
+	ldi	r17,2
 delay_loop_1:
 	ldi	r18,255
 delay_loop_2:
@@ -538,9 +635,11 @@ int_ext_1_isr:
 	sts	contador_low,r16
 	cpi	r16,0
 	brne	end_int_ext_1_isr
-	lds	r16,contador_high
-	inc	r16
-	sts	contador_high,r16
+	;lds	r16,contador_high
+	;inc	r16
+	;sts	contador_high,r16
+	ldi	r16,255
+	sts	contador_low,r16
 end_int_ext_1_isr:
 	pop r16
 	out sreg,r16
