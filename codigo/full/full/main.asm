@@ -154,6 +154,7 @@ timer_0_overflow_isr:
 	lds	r16,sreg
 	push	r16
 	
+	
 	lds	r16,red_duty
 	out	OCR0A,r16
 	lds	r16,green_duty
@@ -278,13 +279,13 @@ end_compute_color:
 	
 ;*************************************************
 
-.equ	RED_DARK = 5
-.equ 	GREEN_DARK = 4
-.equ 	BLUE_DARK = 3
+.equ	RED_DARK = 9
+.equ 	GREEN_DARK = 7
+.equ 	BLUE_DARK = 8
 
-.equ 	RED_WHITE = 115
-.equ 	GREEN_WHITE = 95
-.equ 	BLUE_WHITE = 105
+.equ 	RED_WHITE = 60
+.equ 	GREEN_WHITE = 40
+.equ 	BLUE_WHITE = 90
 
 .equ	MAX_COLOR = 255
 	
