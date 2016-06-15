@@ -28,10 +28,9 @@ blue_freq_high:		.byte	1
 red_duty:		.byte	1
 green_duty:		.byte	1
 blue_duty:		.byte	1
-
-;contador_pwm_red:	.byte	1
-;contador_pwm_green:	.byte	1
-;contador_pwm_blue:	.byte	1
+red_freq_store:		.byte	1
+green_freq_store:	.byte	1
+blue_freq_store:	.byte	1
 
 ;************************************************************************************
 
@@ -66,6 +65,9 @@ main:
 	ldi 	r16,HIGH(RAMEND)
 	out 	sph,r16
 	
+	sbi	DDRC,PC3
+	sbi	PORTC,PC3
+	
 	call	ext_int_init	
 	call	uart_init
 	call	color_switcher_init
@@ -81,6 +83,7 @@ loop:	clr	r16
 	call	compute_color
 	call	print_values
 	call	switch_color
+	call	color_correct_led
 	
 	rjmp	loop
 	
@@ -90,6 +93,66 @@ enable_interrupts:
 	
 disiable_interrupts:
 	cli
+	ret
+
+.equ	SENSIVITY = 6
+	
+color_correct_led:
+	in	r16,S_PORT
+	andi	r16,INPUT_MEASURE_MASK
+	cpi	r16,INPUT_MEASURE_CLEAR		;Solo actualiza cuando esta midiendo clear, o sea ya midio los otros 3.
+	breq	print_led
+	ret
+	
+print_led:
+	lds	r16,red_freq_low
+	lds	r17,red_freq_store
+	cp	r16,r17
+	brlo	red_freq_menor_store
+red_freq_mayor_store:
+	sub	r16,r17
+	rjmp	red_compare
+red_freq_menor_store:
+	sub	r17,r16
+	mov	r16,r17
+red_compare:
+	cpi	r16,SENSIVITY + 1
+	brsh	apagar_led_color_correcto
+	
+	lds	r16,green_freq_low
+	lds	r17,green_freq_store
+	cp	r16,r17
+	brlo	green_freq_menor_store
+green_freq_mayor_store:
+	sub	r16,r17
+	rjmp	green_compare
+green_freq_menor_store:
+	sub	r17,r16
+	mov	r16,r17
+green_compare:
+	cpi	r16,SENSIVITY + 1
+	brsh	apagar_led_color_correcto
+	
+	lds	r16,blue_freq_low
+	lds	r17,blue_freq_store
+	cp	r16,r17
+	brlo	blue_freq_menor_store
+blue_freq_mayor_store:
+	sub	r16,r17
+	rjmp	blue_compare
+blue_freq_menor_store:
+	sub	r17,r16
+	mov	r16,r17
+blue_compare:
+	cpi	r16,SENSIVITY + 1
+	brsh	apagar_led_color_correcto
+	
+encender_led_color_correcto:
+	sbi	PORTC,PC3
+	ret
+	
+apagar_led_color_correcto:
+	cbi	PORTC,PC3	
 	ret
 	
 ;************************************************************************************
@@ -625,6 +688,20 @@ ext_int_init:
 	ret
 
 int_ext_0_isr:
+	push	r16
+	in	r16,sreg
+	push	r16
+	
+	lds	r16,red_freq_low
+	sts	red_freq_store,r16
+	lds	r16,green_freq_low
+	sts	green_freq_store,r16
+	lds	r16,blue_freq_low
+	sts	blue_freq_store,r16
+		
+	pop r16
+	out sreg,r16
+	pop r16
 	reti	
 		
 int_ext_1_isr:
