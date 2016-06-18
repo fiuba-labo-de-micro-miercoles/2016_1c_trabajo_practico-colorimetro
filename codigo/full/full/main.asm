@@ -65,9 +65,7 @@ main:
 	ldi 	r16,HIGH(RAMEND)
 	out 	sph,r16
 	
-	sbi	DDRC,PC3
-	sbi	PORTC,PC3
-	
+	call	color_correct_led_init
 	call	ext_int_init	
 	call	uart_init
 	call	color_switcher_init
@@ -86,16 +84,40 @@ loop:	clr	r16
 	call	color_correct_led
 	
 	rjmp	loop
+
+;************************************************************************************
 	
+; Rutinas para la habilitacion y deshabilitacion de interrupciones.
+	
+; enable_interrupts: Habilita interrupciones.
+
 enable_interrupts:
 	sei
 	ret
 	
+; disiable_interrupts: Deshabilita interrupciones.
+	
 disiable_interrupts:
 	cli
 	ret
+	
+;************************************************************************************
+
+; Rutinas para el manejo del led de color correcto.
 
 .equ	SENSIVITY = 6
+.equ	COLOR_CORRECT_LED_PIN	= PC3
+.equ	COLOR_CORRECT_LED_PORT	= PORTC
+.equ	COLOR_CORRECT_LED_DDR 	= DDRC
+
+; color_correct_led_init: Inicializacion del led de color correcto.
+	
+color_correct_led_init:
+	sbi	COLOR_CORRECT_LED_DDR,COLOR_CORRECT_LED_PIN
+	sbi	COLOR_CORRECT_LED_PORT,COLOR_CORRECT_LED_PIN
+	ret
+	
+; color_correct_led: Calcula si se debe encender o no el led de color correcto.
 	
 color_correct_led:
 	in	r16,S_PORT
@@ -157,6 +179,8 @@ apagar_led_color_correcto:
 	
 ;************************************************************************************
 
+; Rutinas para el manejo del led RGB.
+
 .equ	RED_LED_PIN = PD6
 .equ	GREEN_LED_PIN = PD5
 .equ	BLUE_LED_PIN = PB3
@@ -169,7 +193,12 @@ apagar_led_color_correcto:
 
 .equ	TIMER_PERIOD = 150
 
+; led_init: Inicializa los PWM de los led rojo, verde y azul.
+
 led_init:
+
+	;Puertos
+	
 	cbi	RED_LED_PORT,RED_LED_PIN
 	cbi	GREEN_LED_PORT,GREEN_LED_PIN
 	cbi	BLUE_LED_PORT,BLUE_LED_PIN
@@ -178,39 +207,49 @@ led_init:
 	sbi	BLUE_LED_DDR,BLUE_LED_PIN
 	
 	;TIMER0
+	;PWM phase correct, salida en 1 en compare match ascendiendo y salida en 0 en compare match descendiendo. Para ambos canales.
 	ldi	r16,(1<<COM0B1)|(1<<COM0B0)|(1<<COM0A1)|(1<<COM0A0)|(1<<WGM02)|(1<<WGM00)
 	out	TCCR0A,r16
 	
+	;Prescaler /8.
 	in	r16,TCCR0B
 	andi	r16,~((1<<CS02)|(1<<CS01)|(1<<CS00))
 	ori	r16,(1<<CS01)
 	out	TCCR0B,r16
 	
+	;Inicialmente 0 porciento de dutys en ambos canales.
 	clr	r16
 	out	OCR0A,r16
 	out	OCR0B,r16
 	
+	;Interrupcion en overflow para actualizar los dutys.
 	lds	r16,TIMSK0
 	ori	r16,(1<<TOIE0)
 	sts	TIMSK0,r16
 	
 	;TIMER2
+	;PWM phase correct, salida en 1 en compare match ascendiendo y salida en 0 en compare match descendiendo.
 	ldi	r16,(1<<COM2A1)|(1<<COM2A0)|(1<<WGM22)|(1<<WGM20)
 	sts	TCCR2A,r16
 	
+	;Prescaler /8.
 	lds	r16,TCCR2B
 	andi	r16,~((1<<CS22)|(1<<CS21)|(1<<CS20))
 	ori	r16,(1<<CS21)
 	sts	TCCR2B,r16
 	
+	;Inicialmente duyu del 0 porciento.
 	clr	r16
 	sts	OCR2A,r16
 	
+	;Interrupcion en overflow para actualizar los dutys.
 	lds	r16,TIMSK2
 	ori	r16,(1<<TOIE2)
 	sts	TIMSK2,r16
 	
 	ret
+	
+; timer_0_overflow_isr: Actualiza los dutys de los dos canales de PWM del timer 0.
 	
 timer_0_overflow_isr:
 	push	r16
@@ -227,7 +266,8 @@ timer_0_overflow_isr:
 	sts	sreg,r16
 	pop	r16
 	reti
-	
+
+; timer_1_overflow_isr: Actualiza el duty del PWM del timer 2.
 	
 timer_1_overflow_isr:
 	push	r16
@@ -264,6 +304,8 @@ timer_1_overflow_isr:
 
 ;*************************************************
 
+; color_switcher_init: Inicializa los pines que se encargan de hacer el cambio de color a medir.
+
 color_switcher_init:
 	sbi	S_DDR,S2_PIN
 	sbi	S_DDR,S3_PIN
@@ -272,6 +314,8 @@ color_switcher_init:
 	ret
 	
 ;*************************************************
+
+; switch_color: Cambia el color a medir por el siguiente.
 
 switch_color:
 	in	r16,S_PORT
@@ -302,6 +346,20 @@ end_switch_color:
 	ret
 	
 ;*************************************************
+
+; compute_color: Computa los dutys de los pwm de cada canal.	
+
+; Constantes de calibracion:
+	
+.equ	RED_DARK = 9
+.equ 	GREEN_DARK = 7
+.equ 	BLUE_DARK = 8
+
+.equ 	RED_WHITE = 60
+.equ 	GREEN_WHITE = 40
+.equ 	BLUE_WHITE = 90
+
+.equ	MAX_COLOR = 255
 	
 compute_color:		
 	in	r16,S_PORT
@@ -339,18 +397,6 @@ compute_blue:
 	
 end_compute_color:
 	ret
-	
-;*************************************************
-
-.equ	RED_DARK = 9
-.equ 	GREEN_DARK = 7
-.equ 	BLUE_DARK = 8
-
-.equ 	RED_WHITE = 60
-.equ 	GREEN_WHITE = 40
-.equ 	BLUE_WHITE = 90
-
-.equ	MAX_COLOR = 255
 	
 compute_red_duty:
 	lds	r16,red_freq_high
@@ -441,6 +487,8 @@ min_blue_duty:
 	
 ;*************************************************
 	
+; print_values: Imprime por puerto serie los valores de las frecuencias.
+	
 print_values:
 	in	r16,S_PORT
 	andi	r16,INPUT_MEASURE_MASK
@@ -494,6 +542,17 @@ print_freq:
 	ldiw	Z,(MENSAJE_CR_LF*2)
 	call	tx_string
 	ret
+	
+;************************************************************************************
+	
+; Mensajes a transmitir por puerto serie.
+	
+MENSAJE_FREQ:		.db	"FREQ ", 0	
+MENSAJE_R:		.db	"R: ", 0
+MENSAJE_G:		.db	" G: ", 0
+MENSAJE_B:		.db	" B: ", 0
+MENSAJE_DUTY:		.db	" | DUTY ", 0
+MENSAJE_CR_LF:		.db	13, 10, 0
 	
 ;************************************************************************************
 
@@ -647,6 +706,8 @@ bin_to_bcd:
 
 ;************************************************************************************
 	
+; Rutina de delay entre medicion y medicion.	
+
 delay:
 	ldi	r17,2
 delay_loop_1:
@@ -662,16 +723,9 @@ delay_loop_3:
 	brne	delay_loop_1
 	ret
 
-;************************************************************************************
-	
-MENSAJE_FREQ:		.db	"FREQ ", 0	
-MENSAJE_R:		.db	"R: ", 0
-MENSAJE_G:		.db	" G: ", 0
-MENSAJE_B:		.db	" B: ", 0
-MENSAJE_DUTY:		.db	" | DUTY ", 0
-MENSAJE_CR_LF:		.db	13, 10, 0
-
 ;*************************************************************************************
+
+; ext_int_init: Inicializacion de las interrupciones externas.
 
 ext_int_init:
 	cbi	DDRD,PD2	;INT0
@@ -686,6 +740,8 @@ ext_int_init:
 	ldi	r16,(1<<INT1)|(1<<INT0)
 	output	EIMSK,r16
 	ret
+
+; int_ext_0_isr: Guarda el color actual para el comparador de color.
 
 int_ext_0_isr:
 	push	r16
@@ -703,6 +759,8 @@ int_ext_0_isr:
 	out sreg,r16
 	pop r16
 	reti	
+	
+; int_ext_1_isr: Llegada de pulso del sensor, aumenta el contador del que se obtiene la frecuencia.
 		
 int_ext_1_isr:
 	push	r16
