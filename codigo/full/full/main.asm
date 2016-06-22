@@ -355,9 +355,9 @@ end_switch_color:
 .equ 	GREEN_DARK = 7
 .equ 	BLUE_DARK = 8
 
-.equ 	RED_WHITE = 60
-.equ 	GREEN_WHITE = 40
-.equ 	BLUE_WHITE = 90
+.equ 	RED_WHITE = 125 ;13; ex 60
+.equ 	GREEN_WHITE = 121 ;16; ex 40
+.equ 	BLUE_WHITE = 169 ;13 ;ex 90
 
 .equ	MAX_COLOR = 255
 	
