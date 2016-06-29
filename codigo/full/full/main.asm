@@ -59,12 +59,13 @@ blue_freq_store:	.byte	1
 	
 ;************************************************************************************
 
-main:		
+main:
 	ldi 	r16,LOW(RAMEND)
 	out 	spl,r16
 	ldi 	r16,HIGH(RAMEND)
 	out 	sph,r16
 	
+	; Inicializamos el equipo.
 	call	color_correct_led_init
 	call	ext_int_init	
 	call	uart_init
@@ -72,6 +73,13 @@ main:
 	call	led_init
 	
 	call	enable_interrupts
+
+; loop: Basicamente inicializa un contador en 0, espera un tiempo con una rutina de retardos,
+; se fija cuantas veces se incremento dicho contador (Que se incrementa en la rutina de
+; interrupcion externa cada vez que el sensor emite un pulso) y con eso saca la cantidad
+; de pulsos que el sensor envio. Dicho proceso se realiza para cada componente del color.
+; Ademas, llama a rutinas que calculan las componentes de cada color, imprimen por serie
+; los datos y chequean si el color medido es el buscado.
 
 loop:	clr	r16
 	sts	contador_high,r16
@@ -105,7 +113,7 @@ disiable_interrupts:
 
 ; Rutinas para el manejo del led de color correcto.
 
-.equ	SENSIVITY = 6
+.equ	SENSIVITY = 6				; Cuanto mas baja es, mas selectivo es.
 .equ	COLOR_CORRECT_LED_PIN	= PC3
 .equ	COLOR_CORRECT_LED_PORT	= PORTC
 .equ	COLOR_CORRECT_LED_DDR 	= DDRC
@@ -118,6 +126,9 @@ color_correct_led_init:
 	ret
 	
 ; color_correct_led: Calcula si se debe encender o no el led de color correcto.
+; Basicamente se fija si, para cada componente, la cantidad de pulsos que llegan
+; del sensor es igual a la cantidad que llegan para el color buscado, con un
+; cierto margen de tolerancia ajustado con la constante SENSIVITY.
 	
 color_correct_led:
 	in	r16,S_PORT
@@ -315,7 +326,9 @@ color_switcher_init:
 	
 ;*************************************************
 
-; switch_color: Cambia el color a medir por el siguiente.
+; switch_color: Cambia el color a medir por el siguiente. Basicamente se fija en el estado
+; de las salidas que cambian el color a medir en el sensor, y las cambia por el valor que
+; es necesario para medir la siguiente componente.
 
 switch_color:
 	in	r16,S_PORT
@@ -347,19 +360,28 @@ end_switch_color:
 	
 ;*************************************************
 
-; compute_color: Computa los dutys de los pwm de cada canal.	
+; compute_color: Computa los dutys de los pwm de cada canal.
 
 ; Constantes de calibracion:
 	
-.equ	RED_DARK = 9
-.equ 	GREEN_DARK = 7
-.equ 	BLUE_DARK = 8
+.equ	RED_DARK = 9		;Pulsos de rojo de un color negro puro.
+.equ 	GREEN_DARK = 7		;Pulsos de verde de un color negro puro.
+.equ 	BLUE_DARK = 8		;Pulsos de azul de un color negro puro.
 
-.equ 	RED_WHITE = 125 ;13; ex 60
-.equ 	GREEN_WHITE = 121 ;16; ex 40
-.equ 	BLUE_WHITE = 169 ;13 ;ex 90
+.equ 	RED_WHITE = 125		;Pulsos de rojo de un color blanco puro.
+.equ 	GREEN_WHITE = 121	;Pulsos de verde de un color blanco puro.
+.equ 	BLUE_WHITE = 169	;Pulsos de azul de un color blanco puro.
 
 .equ	MAX_COLOR = 255
+
+; Computa cada uno de los dutys del led RGB, que es la componente de cada color.
+; Basicamente la cuenta que hace es:
+; Componente = 0	Si la cantidad de pulsos es menor que la del negro puro.
+; Componente = 255	Si la cantidad de pulsos es mayor que la del blanco puro.
+; Componente = PulsosMedidos * 255 / (PulsosDeBlancoPuro - PulsosDeNegroPuro)	en otros casos.
+
+; Nota: en el codigo se utiliza el nombre "freq" para designar a la cantidad de pulsos,
+; aunque no sea una frecuencia real dado a que no esta medida en un intervalo unidad.
 	
 compute_color:		
 	in	r16,S_PORT
@@ -488,6 +510,8 @@ min_blue_duty:
 ;*************************************************
 	
 ; print_values: Imprime por puerto serie los valores de las frecuencias.
+; El formato de la impresion es:
+; FREQ R: XXXX G: XXXX B: XXXX | DUTY R: XXXX G: XXXX B:XXXX
 	
 print_values:
 	in	r16,S_PORT
@@ -558,7 +582,10 @@ MENSAJE_CR_LF:		.db	13, 10, 0
 
 ; Rutinas de comunicacion serie:
 
-.equ	BAUD_RATE = 103	; 9600
+.equ	BAUD_RATE = 103	; 9600 baudios.
+
+; uart_init: Inicializa la comunicación serie. Enciende tanto el transmisor como el
+; receptor. Modo asincrono. Sin paridad. 1 bit de stop. 8 bits de datos.
 	
 uart_init:
 	outi	UBRR0H, high(BAUD_RATE)
@@ -567,7 +594,8 @@ uart_init:
 	outi    UCSR0C, (1<<USBS0)|(3<<UCSZ00)
 	ret
 
-; tx_string: Transmite una cadena hubicada en ROM.
+; tx_string: Transmite una cadena ubicada en ROM. Basicamente transmite caracteres
+; hasta encontrar el caracter null.
 ; Entrada: Z: Posicion donde comienza la cadena.	
 	
 tx_string:
@@ -582,7 +610,8 @@ fin_tx_string:
 	pop	r16	
 	ret
 	
-; tx_byte: Tansmite un byte.
+; tx_byte: Tansmite un byte. Se fija que el buffer este disponible y luego
+; escribe el dato en el UDR0 para ser transmitido.
 ; Entrada: r16: Byte a transmitir.	
 	
 tx_byte:
@@ -599,7 +628,8 @@ esperar_buffer_de_tx_vacio_loop:
 	pop	r16
 	ret
 	
-; tx_number: Tansmite un numero del 0 al 9.
+; tx_number: Tansmite un numero del 0 al 9. Basicamente le suma el caracter
+; 0  al numero.
 ; Entrada: r18
 
 tx_number:
@@ -609,7 +639,8 @@ tx_number:
 	ret	
 	
 	
-; tx_bcd_number: Tansmite un numero del 0000 al 9999.
+; tx_bcd_number: Tansmite un numero del 0000 al 9999. Lo pasa a BCD y luego
+; transmite cada uno de sus digitos.
 ; Entrada: r19:r18
 
 tx_bcd_number:
@@ -643,7 +674,9 @@ uart_reg_vacio_isr:
 	
 ;************************************************************************************
 
-; Rutina que divide dos numeros de dos bytes:
+; Rutina que divide dos numeros de dos bytes. Toma el numerador y le resta tantas veces
+; el denominador hasta que quede un numero menor al denominador. El numero que quedo es
+; el resto y la cantidad de restas que hizo es el cociente.
 ; Entrada: r19:r18 Numerador.
 ;	   r21:r20 Denominador.
 ; Salida:  r21:r20 Division.
@@ -677,6 +710,9 @@ divide_end:
 ;************************************************************************************
 
 ; bin_to_bcd: Rutina que convierte un numero binario en BCD.
+; Divide por 1000 y obtiene las unidades de mil, el resto lo divide por 100 y obtiene
+; las centenas, el resto lo divide por 10 y obtiene las decenas y lo que queda son las
+; unidades.
 ; Entrada: r19:r18.
 ; Salida: bcd_unidades_mil
 ;	  bcd_centenas
@@ -760,7 +796,8 @@ int_ext_0_isr:
 	pop r16
 	reti	
 	
-; int_ext_1_isr: Llegada de pulso del sensor, aumenta el contador del que se obtiene la frecuencia.
+; int_ext_1_isr: Llegada de pulso del sensor, aumenta el contador del que se obtiene
+; la cantidad de pulsos que el sensor envio.
 		
 int_ext_1_isr:
 	push	r16
